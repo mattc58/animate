@@ -1,4 +1,4 @@
-(ns src.animate
+(ns animate
   (:gen-class)
   (:use clojure.contrib.command-line))
  
