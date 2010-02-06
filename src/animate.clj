@@ -8,13 +8,28 @@
 (defn echo
     [in out]
     (binding [*in* (BufferedReader. (InputStreamReader. in))
-              *out* (OutputStreamWriter. out)]
-      (loop []
-        (let [input (read-line)]
-          (println input)
-          (flush))
-        (recur))))
-
+        *out* (OutputStreamWriter. out)]
+        (loop []
+            (let [input (read-line)]
+                (println input)
+            (flush))
+            (recur))))
+        ;(loop []
+        ;    (let [input (read-line)]
+        ;        (if 
+        ;            (= input "\r\n")
+        ;            (do((println "exiting server")(flush)))
+        ;        (recur))))))
+    ;                (do(
+    ;                    (println input)
+    ;                    (flush)
+    ;                    (recur))
+    ;                )
+    ;            )
+    ;        )
+    ;    )
+    ;))
+                          
 ;; The main server process 
 (defn run-server
     [port]
