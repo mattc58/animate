@@ -10,6 +10,7 @@
         [[port "The port to use" 5858]
          [ip "This is the IP address to use" "127.0.1.1"]
          [config-dir "The directory to use for application config file" "."]
+         [data-dir "The directory to use for application data files" "."]
          [tmp-dir "This is the tmp directory" "/tmp"]
      remaining]))
      
