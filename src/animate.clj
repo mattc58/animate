@@ -16,9 +16,10 @@
         (recur))))
 
 ;; The main server process 
-(defn run-server []
-  (println "Listening...")
-  (create-server 8080 echo))
+(defn run-server
+    [port]
+    (println "Listening to port" port "...")
+    (create-server port echo))
   
 (defn -main [& args]
     ;; the main function, gets called on startup to process command line args
@@ -29,8 +30,8 @@
          [config-dir "The directory to use for application config file" "."]
          [data-dir "The directory to use for application data files" "."]
          [tmp-dir "This is the tmp directory" "/tmp"]
-     remaining])
-    (def animate-server (run-server)))
+         remaining]
+     (def animate-server (run-server port))))
      
 (defn matt
     []
