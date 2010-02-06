@@ -2,12 +2,6 @@
     (:use clojure.test)
     (:use animate))
  
-(defn anderson
-    []
-    (println "Anderson"))
-    
-(deftest test-anderson
-    (is (= "anderson" "anderson")))
-    
+;; just a simple test to show how the tests work    
 (deftest test-matt
     (is (= 7 (matt))))
