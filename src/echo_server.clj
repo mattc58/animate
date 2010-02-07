@@ -18,15 +18,6 @@
       
 ;; I changed this to use an explicit function instead of the inline anonymous one  
 (defn echo-server []
-  ;(letfn [(echo [in out]
-  ;                  (binding [*in* (BufferedReader. (InputStreamReader. in))
-  ;                            *out* (OutputStreamWriter. out)]
-  ;                    (loop []
-  ;                      (let [input (read-line)]
-  ;                        (print input)
-  ;                        (flush))
-  ;                      (recur))))]
-  ;  (create-server 8080 echo)))
   (println "In echo-server")
   (create-server 8080 echo))
 

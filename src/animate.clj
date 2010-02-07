@@ -4,33 +4,21 @@
   (:use clojure.contrib.server-socket)
   (:import (java.io BufferedReader InputStreamReader OutputStreamWriter)))
  
-;; I changed this to use a println instead of a print, which makes curl happier
+;; Simple method to echo back to the client
 (defn echo
     [in out]
     (binding [*in* (BufferedReader. (InputStreamReader. in))
         *out* (OutputStreamWriter. out)]
-        ;(loop []
-        ;    (let [input (read-line)]
-        ;        (println input)
-        ;    (flush))
-        ;    (recur))))
         (loop []
             (let [input (read-line)]
                 (if 
-                    (not (= input "\r\n"))
-                    (do(
+                    ; this seems like a HACK.  Thought input would be nil but it's not.
+                    (> (.length input) 0)
+                    (do
                         (println input)
                         (flush)
-                        (recur))))))))
-    ;                (do(
-    ;                    (println input)
-    ;                    (flush)
-    ;                    (recur))
-    ;                )
-    ;            )
-    ;        )
-    ;    )
-    ;))
+                        (recur)
+                    ))))))
                           
 ;; The main server process 
 (defn run-server
