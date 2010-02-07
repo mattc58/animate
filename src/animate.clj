@@ -9,17 +9,19 @@
     [in out]
     (binding [*in* (BufferedReader. (InputStreamReader. in))
         *out* (OutputStreamWriter. out)]
-        (loop []
-            (let [input (read-line)]
-                (println input)
-            (flush))
-            (recur))))
         ;(loop []
         ;    (let [input (read-line)]
-        ;        (if 
-        ;            (= input "\r\n")
-        ;            (do((println "exiting server")(flush)))
-        ;        (recur))))))
+        ;        (println input)
+        ;    (flush))
+        ;    (recur))))
+        (loop []
+            (let [input (read-line)]
+                (if 
+                    (not (= input "\r\n"))
+                    (do(
+                        (println input)
+                        (flush)
+                        (recur))))))))
     ;                (do(
     ;                    (println input)
     ;                    (flush)
