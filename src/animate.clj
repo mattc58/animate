@@ -36,20 +36,43 @@
     (binding [*in* (BufferedReader. (InputStreamReader. in))]
     (let [client-out (OutputStreamWriter. out)]
         (println "New client connection...")
-        (loop [lines ()]
+        (loop [lines []]
             (let [input (read-line)]
                 (if 
                     (= (.length input) 0)
                     (doseq [line lines]
                         (writeln client-out line))
                 (recur (cons input lines))))))))
+
+(defn serve-resource
+    [stream verb resource-path]
+    (println "Will send " resource-path))
     
-                          
+                    
+(defn handle-request
+    " the function that handles the client request "
+    [in out]
+    (binding [*in* (BufferedReader. (InputStreamReader. in))]
+    (let [client-out (OutputStreamWriter. out)]
+        (println "New client connection...")
+        (loop [lines []]
+            (let [input (read-line)]
+                (if 
+                    (= (.length input) 0)
+                    (do
+                        (let [last-line (seq (.split (last lines) " "))
+                            verb (first last-line)
+                            resource (nth last-line 1)]
+                            (serve-resource client-out verb resource)))
+                (recur (cons input lines))))))))
+    
+          
 (defn run-server
     " The main server process "
     [port]
     (println "Listening to port" port "...")
-    (create-server port echo-batch))
+    ;(create-server port echo-batch))
+    (create-server port handle-request))
   
 (defn -main [& args]
     "the main function, gets called on startup to process command line args"
@@ -60,8 +83,8 @@
          [config-dir "The directory to use for application config file" "."]
          [data-dir "The directory to use for application data files" "."]
          [tmp-dir "This is the tmp directory" "/tmp"]
-         remaining]
-     (def animate-server (run-server port))))
+         remaining] 
+         (def animate-server (run-server port))))
      
 (defn matt
     []
