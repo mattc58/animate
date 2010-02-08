@@ -8,7 +8,6 @@
 (defn echo
     [in out]
     (binding [*in* (BufferedReader. (InputStreamReader. in))]
-        ;*out* (OutputStreamWriter. out)]
     (let [client-out (OutputStreamWriter. out)]
         (println "New client connection...")
         (loop []
