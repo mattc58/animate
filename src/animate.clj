@@ -45,6 +45,19 @@
                         (writeln client-out line))
                 (recur (cons input lines))))))))
 
+
+(defn make-css-header
+    " make a CSS header "
+    [content-length]
+    (list
+        "HTTP/1.1 200 OK"
+        "Content-Type: text/css"
+        (str "Content-Length: " content-length) 
+        "Server: Animate"
+        "X-Powered-By: Animate"
+        "\n"
+        ))
+        
 (defn make-success-header
     " make the HTTP 200 header "
     [content-length]
@@ -53,7 +66,8 @@
         "Server: Animate"
         "X-Powered-By: Animate"
         "Content-Type: text/html; charset=utf-8"
-    (str "Content-Length: " content-length) "\n"))
+        (str "Content-Length: " content-length) 
+        "\n"))
     
 (defn make-404-header
     " make the HTTP 404 not found header "
@@ -63,17 +77,24 @@
         "Server: Animate"
         "X-Powered-By: Animate"
         "Content-Type: text/html; charset=utf-8"
-    (str "Content-Length: " content-length) "\n"))
+        (str "Content-Length: " content-length) 
+        "\n"))
 
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream verb resource-path]
     (let [file-name (str "." resource-path)
         resource-file (File. file-name)]
+        (println "Going to serve" resource-file)
         (if
             (.exists resource-file)
             (let [resource (slurp file-name)]
-                (doseq [line (concat (make-success-header (.length resource)) (list resource))]
+                (doseq [line (concat 
+                    (if
+                        (.contains file-name ".css")
+                        (make-css-header (.length resource))
+                        (make-success-header (.length resource))
+                    )  (list resource))]
                     (writeln stream line)))
             (let [notfound (slurp "404.html")]
                 (doseq [line (concat (make-404-header (.length notfound)) (list notfound))]
@@ -89,12 +110,15 @@
             (let [input (read-line)]
                 (if 
                     (= (.length input) 0)
+                    ;; 0 length line means it's time to serve the resource
                     (do
                         (let [last-line (seq (.split (last lines) " "))
                             verb (first last-line)
                             resource (nth last-line 1)]
-                            (serve-resource client-out verb resource)))
-                (recur (cons input lines))))))))
+                        ;; if it's only / then change it to /index.html
+                        (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
+                    ;; add to the lines vector and keep going
+                    (recur (cons input lines))))))))
     
           
 (defn run-server
