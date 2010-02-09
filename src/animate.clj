@@ -17,7 +17,7 @@
 ;; the global configuration directory
 (def config-dir "")
 
-(defn make-css-header
+(defn- make-css-header
     " make a CSS header "
     [content-length]
     (str-join "\n"
@@ -30,20 +30,21 @@
             "\n"
             )))
         
-(defn make-image-header
+(defn- make-image-header
     " make a CSS header "
-    [content-length extension]
-    (str-join "\n"
-        (list
-            "HTTP/1.1 200 OK"
-            (str "Content-Type: image/" extension)
-            (str "Content-Length: " content-length) 
-            "Server: Animate"
-            "X-Powered-By: Animate"
-            "\n"
-            )))
+    [content-length file-name]
+    (let [extension (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name))]
+        (str-join "\n"
+            (list
+                "HTTP/1.1 200 OK"
+                (str "Content-Type: image/" extension)
+                (str "Content-Length: " content-length) 
+                "Server: Animate"
+                "X-Powered-By: Animate"
+                "\n"
+                ))))
 
-(defn make-success-header
+(defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
     (str-join "\n"
@@ -55,7 +56,7 @@
             (str "Content-Length: " content-length) 
         "\n")))
     
-(defn make-404-header
+(defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
     (str-join "\n"
@@ -67,6 +68,29 @@
             (str "Content-Length: " content-length) 
             "\n")))
 
+(defn- make-500-header
+    " make the HTTP 500 server error header "
+    [content-length]
+    (str-join "\n"
+        (list 
+            "HTTP/1.1 500 Server Error"
+            "Server: Animate"
+            "X-Powered-By: Animate"
+            "Content-Type: text/html; charset=utf-8"
+            (str "Content-Length: " content-length) 
+            "\n")))
+
+(defn make-header
+    " generic function to make an HTTP header for a given type "
+    [type content-length file-name]
+    (cond
+        (= type "css") (make-css-header content-length)
+        (= type "image") (make-image-header content-length file-name)
+        (= type "html") (make-success-header content-length)
+        (= type "404") (make-404-header content-length)
+        :else (make-500-header content-length)
+    ))
+    
 (defn write-resource
     " write a resourse with its header and then its content "
     [stream header content]
@@ -81,26 +105,24 @@
     " serve an actual resource (a file) "
     [stream verb resource-path]
     (let [file-name (str config-dir resource-path)
+        file-type (cond
+            (.contains file-name ".css") "css"
+            (.contains file-name ".jpg") "image"
+            :else "html"
+        ) 
         resource-file (File. file-name)]
         (println "Going to serve" resource-file)
         (if
             (.exists resource-file)
             (let [resource (slurp file-name)]
-                (write-resource
-                    stream
-                    (cond
-                        (.contains file-name ".css") (make-css-header (.length resource))
-                        (.contains file-name ".jpg") (make-image-header (.length resource) "jpeg")
-                        :else (make-success-header (.length resource))
-                    ) 
-                    resource))
+                (write-resource stream (make-header file-type (.length resource) file-name) resource))
             (try
                 (let [notfound (slurp (str config-dir "/404.html"))]
-                    (write-resource stream (make-404-header (.length notfound)) notfound))
+                    (write-resource stream (make-header "404" (.length notfound) file-name) notfound))
             (catch FileNotFoundException e
                 ;; can't find the 404 file (ironically), so just send a message
                 (let [message "HTTP 404: Not Found\n"]
-                    (write-resource stream (make-404-header (.length message)) message)))))))
+                    (write-resource stream (make-header "404" (.length message) file-name) message)))))))
 
 (defn handle-request
     " the function that handles the client request "
