@@ -2,10 +2,9 @@
 
 (ns animate
   (:gen-class)
-  (:use clojure.contrib.command-line)
-  (:use clojure.contrib.server-socket)
-  (:use clojure.contrib.duck-streams)
-  (:use clojure.contrib.str-utils)
+  (:use [clojure.contrib.command-line :only (with-command-line)])
+  (:use [clojure.contrib.server-socket :only (create-server)])
+  (:require [clojure.contrib.str-utils2 :as str-utils :only (join)])
   (:import (java.io File FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
@@ -20,7 +19,7 @@
 (defn- make-css-header
     " make a CSS header "
     [content-length]
-    (str-join "\n"
+    (str-utils/join "\n"
         (list
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
@@ -34,7 +33,7 @@
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (str-join "\n"
+        (str-utils/join "\n"
             (list
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
@@ -47,7 +46,7 @@
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
-    (str-join "\n"
+    (str-utils/join "\n"
         (list 
             "HTTP/1.1 200 OK"
             "Server: Animate"
@@ -59,7 +58,7 @@
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
-    (str-join "\n"
+    (str-utils/join "\n"
         (list 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
@@ -71,7 +70,7 @@
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
-    (str-join "\n"
+    (str-utils/join "\n"
         (list 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
