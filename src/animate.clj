@@ -33,11 +33,11 @@
 (defn- make-image-header
     " make a CSS header "
     [content-length file-name]
-    (let [extension (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name))]
+    (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
         (str-join "\n"
             (list
                 "HTTP/1.1 200 OK"
-                (str "Content-Type: image/" extension)
+                (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
                 (str "Content-Length: " content-length) 
                 "Server: Animate"
                 "X-Powered-By: Animate"
