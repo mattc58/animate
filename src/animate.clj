@@ -90,7 +90,7 @@
         (or 
             (.contains file-name ".jpg") 
             (.contains file-name ".gif") 
-            (.contains file-name "png")) "image"
+            (.contains file-name ".png")) "image"
         (.contains file-name ".html") "html"
         :else nil)]
     (cond
