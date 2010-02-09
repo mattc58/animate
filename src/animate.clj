@@ -17,45 +17,6 @@
 ;; the global configuration directory
 (def config-dir "")
 
-(defn- writeln
-    " utility function to write a string and a newline to a stream "
-    [stream s]
-    (doto stream
-        (.write s)
-        (.write "\n")
-        (.flush)
-    ))
-    
-(defn echo
-    " a simple funciton to echo back to the client "
-    [in out]
-    (binding [*in* (BufferedReader. (InputStreamReader. in))]
-    (let [client-out (OutputStreamWriter. out)]
-        (println "New client connection...")
-        (loop []
-            (let [input (read-line)]
-                (if 
-                    (> (.length input) 0)
-                    (do
-                        (writeln client-out input)
-                        (recur)
-                    )))))))
-                    
-(defn echo-batch
-    " a batch-oriented echo that will get all lines from the client first "
-    [in out]
-    (binding [*in* (BufferedReader. (InputStreamReader. in))]
-    (let [client-out (OutputStreamWriter. out)]
-        (println "New client connection...")
-        (loop [lines []]
-            (let [input (read-line)]
-                (if 
-                    (= (.length input) 0)
-                    (doseq [line lines]
-                        (writeln client-out line))
-                (recur (cons input lines))))))))
-
-
 (defn make-css-header
     " make a CSS header "
     [content-length]
@@ -180,11 +141,5 @@
          [tmp-dir "This is the tmp directory" "./animate/tmp"]
          remaining] 
          (def animate-server (run-server port config-dir tmp-dir))))
-     
-(defn matt
-    []
-    (+ 2 5))
-    
-    
 
   
