@@ -82,14 +82,19 @@
 
 (defn make-header
     " generic function to make an HTTP header for a given type "
-    [type content-length file-name]
+    [content-length file-name]
+    (let [type (cond
+        (nil? file-name) "404"
+        (.contains file-name ".css") "css"
+        (.contains file-name ".jpg") "image"
+        :else "html")]
     (cond
         (= type "css") (make-css-header content-length)
         (= type "image") (make-image-header content-length file-name)
-        (= type "html") (make-success-header content-length)
+        (= type "html") (make-html-header content-length)
         (= type "404") (make-404-header content-length)
         :else (make-500-header content-length)
-    ))
+    )))
     
 (defn write-resource
     " write a resourse with its header and then its content "
@@ -105,24 +110,19 @@
     " serve an actual resource (a file) "
     [stream verb resource-path]
     (let [file-name (str config-dir resource-path)
-        file-type (cond
-            (.contains file-name ".css") "css"
-            (.contains file-name ".jpg") "image"
-            :else "html"
-        ) 
         resource-file (File. file-name)]
         (println "Going to serve" resource-file)
         (if
             (.exists resource-file)
             (let [resource (slurp file-name)]
-                (write-resource stream (make-header file-type (.length resource) file-name) resource))
+                (write-resource stream (make-header (.length resource) file-name) resource))
             (try
                 (let [notfound (slurp (str config-dir "/404.html"))]
-                    (write-resource stream (make-header "404" (.length notfound) file-name) notfound))
+                    (write-resource stream (make-header (.length notfound) nil) notfound))
             (catch FileNotFoundException e
                 ;; can't find the 404 file (ironically), so just send a message
                 (let [message "HTTP 404: Not Found\n"]
-                    (write-resource stream (make-header "404" (.length message) file-name) message)))))))
+                    (write-resource stream (make-header (.length message) nil) message)))))))
 
 (defn handle-request
     " the function that handles the client request "

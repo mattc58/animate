@@ -2,6 +2,9 @@
     (:use clojure.test)
     (:use animate))
  
-;; just a simple test to show how the tests work    
-(deftest test-matt
-    (is (= 7 (matt))))
+(deftest test-css-header
+    " Let's test the css header maker "
+    (let [header (make-header 1024 "styles.css")]
+        (is (.contains header  "HTTP/1.1 200 OK"))
+        (is (.contains header "Content-Length: 1024"))
+        (is (.contains header "Content-Type: text/css"))))
