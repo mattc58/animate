@@ -79,15 +79,20 @@
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
             "\n")))
-
+            
 (defn make-header
     " generic function to make an HTTP header for a given type "
     [content-length file-name]
     (let [type (cond
         (nil? file-name) "404"
         (.contains file-name ".css") "css"
-        (.contains file-name ".jpg") "image"
-        :else "html")]
+        ;; HACK: isn't there a contains-one-of type of function?
+        (or 
+            (.contains file-name ".jpg") 
+            (.contains file-name ".gif") 
+            (.contains file-name "png")) "image"
+        (.contains file-name ".html") "html"
+        :else nil)]
     (cond
         (= type "css") (make-css-header content-length)
         (= type "image") (make-image-header content-length file-name)

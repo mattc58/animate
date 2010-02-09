@@ -29,3 +29,24 @@
         (is (.contains header  "HTTP/1.1 200 OK"))
         (is (.contains header "Content-Length: 145009"))
         (is (.contains header "Content-Type: image/jpeg"))))
+
+(deftest test-png-header
+    " Let's test the png header maker "
+    (let [header (make-header 145008 "mattc.png")]
+        (is (.contains header  "HTTP/1.1 200 OK"))
+        (is (.contains header "Content-Length: 145008"))
+        (is (.contains header "Content-Type: image/png"))))
+
+(deftest test-gif-header
+    " Let's test the gif header maker "
+    (let [header (make-header 145007 "mattc.gif")]
+        (is (.contains header  "HTTP/1.1 200 OK"))
+        (is (.contains header "Content-Length: 145007"))
+        (is (.contains header "Content-Type: image/gif"))))
+
+(deftest test-500-header
+    " Let's test the 500 header maker "
+    (let [header (make-header 998 "movie.mp4")]
+        (is (.contains header "HTTP/1.1 500 Server Error"))
+        (is (.contains header "Content-Length: 998"))
+        (is (.contains header "Content-Type: text/html"))))
