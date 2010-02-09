@@ -8,6 +8,15 @@
   (:use clojure.contrib.str-utils)
   (:import (java.io File FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
+;; some globals for the server
+
+;; a structure for configuration information
+(defstruct config :name :files_root :url_root :server_names)
+(def configs ())
+
+;; the global configuration directory
+(def config-dir "")
+
 (defn- writeln
     " utility function to write a string and a newline to a stream "
     [stream s]
@@ -110,7 +119,7 @@
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream verb resource-path]
-    (let [file-name (str "." resource-path)
+    (let [file-name (str config-dir resource-path)
         resource-file (File. file-name)]
         (println "Going to serve" resource-file)
         (if
@@ -124,8 +133,13 @@
                         :else (make-success-header (.length resource))
                     ) 
                     resource))
-            (let [notfound (slurp "404.html")]
-                (write-resource stream (make-404-header (.length notfound)) notfound)))))
+            (try
+                (let [notfound (slurp (str config-dir "/404.html"))]
+                    (write-resource stream (make-404-header (.length notfound)) notfound))
+            (catch FileNotFoundException e
+                ;; can't find the 404 file (ironically), so just send a message
+                (let [message "HTTP 404: Not Found\n"]
+                    (write-resource stream (make-404-header (.length message)) message)))))))
 
 (defn handle-request
     " the function that handles the client request "
@@ -150,7 +164,9 @@
           
 (defn run-server
     " The main server process "
-    [port]
+    [port config-dir tmp-dir]
+    (println "Going to read config files at " config-dir)
+    (def config-dir config-dir)
     (println "Listening to port" port "...")
     (create-server port handle-request))
   
@@ -160,11 +176,10 @@
         "Animate: bringing Clojure web applications to life"
         [[port "The port to use" 5858]
          [ip "This is the IP address to use" "127.0.1.1"]
-         [config-dir "The directory to use for application config file" "."]
-         [data-dir "The directory to use for application data files" "."]
-         [tmp-dir "This is the tmp directory" "/tmp"]
+         [config-dir "The directory to use for application config file" "./animate/mattculbreth.com"]
+         [tmp-dir "This is the tmp directory" "./animate/tmp"]
          remaining] 
-         (def animate-server (run-server port))))
+         (def animate-server (run-server port config-dir tmp-dir))))
      
 (defn matt
     []
