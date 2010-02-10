@@ -4,7 +4,7 @@
   (:gen-class)
   (:use [clojure.contrib.command-line :only (with-command-line)])
   (:use [clojure.contrib.server-socket :only (create-server)])
-  (:require [clojure.contrib.str-utils2 :as str-utils :only (join)])
+  (:require [clojure.contrib.string :as str-utils :only (join)])
   (:import (java.io File FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
