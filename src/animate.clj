@@ -20,64 +20,64 @@
     " make a CSS header "
     [content-length]
     (str-utils/join "\n"
-        (list
+        [
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
             (str "Content-Length: " content-length) 
             "Server: Animate"
             "X-Powered-By: Animate"
-            "\n"
-            )))
+            "\n"]
+            ))
         
 (defn- make-image-header
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
         (str-utils/join "\n"
-            (list
+            [
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
                 (str "Content-Length: " content-length) 
                 "Server: Animate"
                 "X-Powered-By: Animate"
-                "\n"
-                ))))
+                "\n"]
+                )))
 
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
     (str-utils/join "\n"
-        (list 
+        [ 
             "HTTP/1.1 200 OK"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-        "\n")))
+            "\n"]))
     
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
     (str-utils/join "\n"
-        (list 
+        [ 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-            "\n")))
+            "\n"]))
 
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
     (str-utils/join "\n"
-        (list 
+        [ 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-            "\n")))
+            "\n"]))
             
 (defn make-header
     " generic function to make an HTTP header for a given type "
@@ -146,6 +146,7 @@
                         ;; if it's only / then change it to /index.html
                         (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
                     ;; add to the lines vector and keep going
+                    ;; note it makes the incoming request reversed
                     (recur (cons input lines))))))))
     
           
