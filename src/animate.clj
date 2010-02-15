@@ -5,13 +5,13 @@
   (:use [clojure.contrib.command-line :only (with-command-line)])
   (:use [clojure.contrib.server-socket :only (create-server)])
   (:require [clojure.contrib.string :as str-utils :only (join)])
-  (:import (java.io File FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
+  (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
 ;; a structure for configuration information
-(defstruct config :name :files_root :url_root :server_names)
-(def configs ())
+(defstruct config :name :files-root :url-root :host-names)
+(def configs [])
 
 ;; the global configuration directory
 (def config-dir "")
@@ -140,6 +140,7 @@
                     (= (.length input) 0)
                     ;; 0 length line means it's time to serve the resource
                     (do
+                        (println lines)
                         (let [last-line (seq (.split (last lines) " "))
                             verb (first last-line)
                             resource (nth last-line 1)]
@@ -149,12 +150,21 @@
                     ;; note it makes the incoming request reversed
                     (recur (cons input lines))))))))
     
-          
+
+(defn load-config-files
+    [config-dir]
+    (def config-dir config-dir)
+    (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
+        (doseq [file files]
+            (let [config-map (read-string (slurp (str config-dir "/" file)))]
+                (println "Loading config: " file)
+                (def configs (assoc configs (count configs) (merge (struct config) config-map)))))))
+              
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
     (println "Going to read config files at " config-dir)
-    (def config-dir config-dir)
+    (load-config-files config-dir)
     (println "Listening to port" port "...")
     (create-server port handle-request))
   
@@ -164,7 +174,7 @@
         "Animate: bringing Clojure web applications to life"
         [[port "The port to use" 5858]
          [ip "This is the IP address to use" "127.0.1.1"]
-         [config-dir "The directory to use for application config file" "./animate/mattculbreth.com"]
+         [config-dir "The directory to use for application config file" "./animate"]
          [tmp-dir "This is the tmp directory" "./animate/tmp"]
          remaining] 
          (def animate-server (run-server port config-dir tmp-dir))))
