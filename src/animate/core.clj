@@ -13,6 +13,9 @@
 (defstruct config :name :files-root :url-root :host-names)
 (def configs [])
 
+;; a structure for HTTP requests
+(defstruct http-request :verb :resource :protocol :user-agent :host :accept)
+
 ;; the global configuration directory
 (def config-dir "")
 
@@ -128,28 +131,28 @@
                 (let [message "HTTP 404: Not Found\n"]
                     (write-resource stream (make-header (.length message) nil) message)))))))
 
+(defn- read-request
+    " read the HTTP request in and return a vector of the lines "
+    [in]
+    (binding [*in* (BufferedReader. (InputStreamReader. in))]
+        (loop [lines []]
+            (let [input (read-line)]
+                (if 
+                    (= (.length input) 0)
+                    (reverse lines)
+                    (recur (cons input lines)))))))
+
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (binding [*in* (BufferedReader. (InputStreamReader. in))]
-        (let [client-out (OutputStreamWriter. out)]
-            (println "New client connection...")
-            (loop [lines []]
-                (let [input (read-line)]
-                    (if 
-                        (= (.length input) 0)
-                        ;; 0 length line means it's time to serve the resource
-                        (do
-                            (println lines)
-                            (let [last-line (seq (.split (last lines) " "))
-                                verb (first last-line)
-                                resource (nth last-line 1)]
-                            ;; if it's only / then change it to /index.html
-                            (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
-                        ;; add to the lines vector and keep going
-                        ;; note it makes the incoming request reversed
-                        (recur (cons input lines))))))))
-
+    (let [client-out (OutputStreamWriter. out)
+        request (read-request in)]
+        (do
+            (println "0 line =\n" (first request))
+            (println "1 line =\n" (second request))
+            (let [first-line (seq (.split (first request) " "))
+                resource (nth first-line 1)]
+                (serve-resource client-out (first first-line) (if (= resource "/") "/index.html" resource))))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
