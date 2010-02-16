@@ -6,13 +6,14 @@
   (:use clojure.contrib.server-socket)
   (:use clojure.contrib.duck-streams)
   (:use clojure.contrib.str-utils)
-  (:import (java.io File FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
+  (:import (java.io File FilenameFilter FileNotFoundException 
+      BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
 ;; a structure for configuration information
-(defstruct config :name :files_root :url_root :server_names)
-(def configs ())
+(defstruct config :name :files-root :url-root :server-names)
+(def configs [])
 
 ;; the global configuration directory
 (def config-dir "")
@@ -148,13 +149,37 @@
                         (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
                     ;; add to the lines vector and keep going
                     (recur (cons input lines))))))))
-    
+
+;; This will explore the passed-in config-dir to find all config files
+;; and build the configs list.
+;; use File.list(), File.isDirectory(), 
+;; clojure code:
+;;(def files (.list f (proxy [java.io.FilenameFilter] [] (accept [dir name] (. name (endsWith ".jar"))))))
+
+;; this will turn a given file into a config struct
+
+;; make a struct (def c3 (struct config "mattculbreth.com" "./configs/mattculbreth.com" "/"))
+;; write a vector of structs (with-out-writer "test.txt" (print [c1 c2 c3]))
+
+;; read in the file
+;; the with-in-reader file_name body should work, but I can't get it
+;; instead can use something like
+;(for [line (read-lines file-text)] (apply struct configs line))
+
+(defn load-config-files
+    [config-dir]
+    (let [files (File. config-dir)
+        files (.list files-dir (proxy [FilenameFilter] [] (accept [dir name] (. name (endsWith ".config")))))]
+        (doseq
+            [file files]
+            (for [line (read-lines file)] (apply struct configs line)))))
+
           
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
     (println "Going to read config files at " config-dir)
-    (def config-dir config-dir)
+    (read-config-files config-dir)
     (println "Listening to port" port "...")
     (create-server port handle-request))
   
