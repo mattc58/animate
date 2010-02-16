@@ -2,7 +2,7 @@
 
 (ns test-headers
     (:use [clojure.test :only (deftest, is)])
-    (:use animate))
+    (:use animate.core))
  
 (deftest test-css-header
     " Let's test the css header maker "

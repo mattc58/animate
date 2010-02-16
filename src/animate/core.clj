@@ -1,11 +1,11 @@
 ;; The main functions for Animate
 
-(ns animate
-  (:gen-class)
-  (:use [clojure.contrib.command-line :only (with-command-line)])
-  (:use [clojure.contrib.server-socket :only (create-server)])
-  (:require [clojure.contrib.string :as str-utils :only (join)])
-  (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
+(ns animate.core
+    (:gen-class)
+    (:use [clojure.contrib.command-line :only (with-command-line)])
+    (:use [clojure.contrib.server-socket :only (create-server)])
+    (:use (clojure.contrib [string :only (join)]))
+    (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
@@ -19,7 +19,7 @@
 (defn- make-css-header
     " make a CSS header "
     [content-length]
-    (str-utils/join "\n"
+    (join "\n"
         [
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
@@ -33,7 +33,7 @@
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (str-utils/join "\n"
+        (join "\n"
             [
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
@@ -46,7 +46,7 @@
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
-    (str-utils/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 200 OK"
             "Server: Animate"
@@ -58,7 +58,7 @@
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
-    (str-utils/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
@@ -70,7 +70,7 @@
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
-    (str-utils/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
@@ -132,23 +132,24 @@
     " the function that handles the client request "
     [in out]
     (binding [*in* (BufferedReader. (InputStreamReader. in))]
-    (let [client-out (OutputStreamWriter. out)]
-        (println "New client connection...")
-        (loop [lines []]
-            (let [input (read-line)]
-                (if 
-                    (= (.length input) 0)
-                    ;; 0 length line means it's time to serve the resource
-                    (do
-                        (println lines)
-                        (let [last-line (seq (.split (last lines) " "))
-                            verb (first last-line)
-                            resource (nth last-line 1)]
-                        ;; if it's only / then change it to /index.html
-                        (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
-                    ;; add to the lines vector and keep going
-                    ;; note it makes the incoming request reversed
-                    (recur (cons input lines))))))))
+        (let [client-out (OutputStreamWriter. out)]
+            (println "New client connection...")
+            (loop [lines []]
+                (let [input (read-line)]
+                    (if 
+                        (= (.length input) 0)
+                        ;; 0 length line means it's time to serve the resource
+                        (do
+                            (println lines)
+                            (let [last-line (seq (.split (last lines) " "))
+                                verb (first last-line)
+                                resource (nth last-line 1)]
+                            ;; if it's only / then change it to /index.html
+                            (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
+                        ;; add to the lines vector and keep going
+                        ;; note it makes the incoming request reversed
+                        (recur (cons input lines))))))))
+
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
