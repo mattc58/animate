@@ -2,17 +2,15 @@
 
 (ns animate
   (:gen-class)
-  (:use clojure.contrib.command-line)
-  (:use clojure.contrib.server-socket)
-  (:use clojure.contrib.duck-streams)
-  (:use clojure.contrib.str-utils)
-  (:import (java.io File FilenameFilter FileNotFoundException 
-      BufferedReader InputStreamReader OutputStreamWriter)))
+  (:use [clojure.contrib.command-line :only (with-command-line)])
+  (:use [clojure.contrib.server-socket :only (create-server)])
+  (:require [clojure.contrib.string :as str-utils :only (join)])
+  (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
 ;; a structure for configuration information
-(defstruct config :name :files-root :url-root :server-names)
+(defstruct config :name :files-root :url-root :host-names)
 (def configs [])
 
 ;; the global configuration directory
@@ -21,65 +19,65 @@
 (defn- make-css-header
     " make a CSS header "
     [content-length]
-    (str-join "\n"
-        (list
+    (str-utils/join "\n"
+        [
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
             (str "Content-Length: " content-length) 
             "Server: Animate"
             "X-Powered-By: Animate"
-            "\n"
-            )))
+            "\n"]
+            ))
         
 (defn- make-image-header
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (str-join "\n"
-            (list
+        (str-utils/join "\n"
+            [
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
                 (str "Content-Length: " content-length) 
                 "Server: Animate"
                 "X-Powered-By: Animate"
-                "\n"
-                ))))
+                "\n"]
+                )))
 
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
-    (str-join "\n"
-        (list 
+    (str-utils/join "\n"
+        [ 
             "HTTP/1.1 200 OK"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-        "\n")))
+            "\n"]))
     
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
-    (str-join "\n"
-        (list 
+    (str-utils/join "\n"
+        [ 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-            "\n")))
+            "\n"]))
 
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
-    (str-join "\n"
-        (list 
+    (str-utils/join "\n"
+        [ 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
             "X-Powered-By: Animate"
             "Content-Type: text/html; charset=utf-8"
             (str "Content-Length: " content-length) 
-            "\n")))
+            "\n"]))
             
 (defn make-header
     " generic function to make an HTTP header for a given type "
@@ -142,44 +140,28 @@
                     (= (.length input) 0)
                     ;; 0 length line means it's time to serve the resource
                     (do
+                        (println lines)
                         (let [last-line (seq (.split (last lines) " "))
                             verb (first last-line)
                             resource (nth last-line 1)]
                         ;; if it's only / then change it to /index.html
                         (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
                     ;; add to the lines vector and keep going
+                    ;; note it makes the incoming request reversed
                     (recur (cons input lines))))))))
 
-;; This will explore the passed-in config-dir to find all config files
-;; and build the configs list.
-;; use File.list(), File.isDirectory(), 
-;; clojure code:
-;;(def files (.list f (proxy [java.io.FilenameFilter] [] (accept [dir name] (. name (endsWith ".jar"))))))
-
-;; this will turn a given file into a config struct
-
-;; make a struct (def c3 (struct config "mattculbreth.com" "./configs/mattculbreth.com" "/"))
-;; write a vector of structs (with-out-writer "test.txt" (print [c1 c2 c3]))
-
-;; read in the file
-;; the with-in-reader file_name body should work, but I can't get it
-;; instead can use something like
-;(for [line (read-lines file-text)] (apply struct configs line))
-
 (defn load-config-files
+    " load the configuration files and put them in the configs vector "
     [config-dir]
-    (let [files (File. config-dir)
-        files (.list files-dir (proxy [FilenameFilter] [] (accept [dir name] (. name (endsWith ".config")))))]
-        (doseq
-            [file files]
-            (for [line (read-lines file)] (apply struct configs line)))))
-
-          
+    (def config-dir config-dir)
+    (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
+        (def configs (map #(merge (struct config) (read-string (slurp (str config-dir "/" % )))) files))))
+              
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
     (println "Going to read config files at " config-dir)
-    (read-config-files config-dir)
+    (load-config-files config-dir)
     (println "Listening to port" port "...")
     (create-server port handle-request))
   
@@ -189,7 +171,7 @@
         "Animate: bringing Clojure web applications to life"
         [[port "The port to use" 5858]
          [ip "This is the IP address to use" "127.0.1.1"]
-         [config-dir "The directory to use for application config file" "./animate/mattculbreth.com"]
+         [config-dir "The directory to use for application config file" "./animate"]
          [tmp-dir "This is the tmp directory" "./animate/tmp"]
          remaining] 
          (def animate-server (run-server port config-dir tmp-dir))))

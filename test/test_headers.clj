@@ -1,5 +1,7 @@
-(ns test
-    (:use clojure.test)
+;; Tests of the HTTP header functionality
+
+(ns test-headers
+    (:use [clojure.test :only (deftest, is)])
     (:use animate))
  
 (deftest test-css-header
