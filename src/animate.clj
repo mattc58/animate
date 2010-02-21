@@ -131,24 +131,14 @@
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (binding [*in* (BufferedReader. (InputStreamReader. in))]
-    (let [client-out (OutputStreamWriter. out)]
-        (println "New client connection...")
-        (loop [lines []]
-            (let [input (read-line)]
-                (if 
-                    (= (.length input) 0)
-                    ;; 0 length line means it's time to serve the resource
-                    (do
-                        (println lines)
-                        (let [last-line (seq (.split (last lines) " "))
-                            verb (first last-line)
-                            resource (nth last-line 1)]
-                        ;; if it's only / then change it to /index.html
-                        (serve-resource client-out verb (if (= resource "/") "/index.html" resource))))
-                    ;; add to the lines vector and keep going
-                    ;; note it makes the incoming request reversed
-                    (recur (cons input lines))))))))
+    (let [
+        client-in (BufferedReader. (InputStreamReader. in))
+        client-out (OutputStreamWriter. out)
+        lines (line-seq client-in)
+        first-line (seq (.split (first lines) " "))
+        resource (nth first-line 1)]
+        (serve-resource client-out (first first-line) (if (= resource "/") "/index.html" resource))))
+
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
