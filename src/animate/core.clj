@@ -10,11 +10,11 @@
 ;; some globals for the server
 
 ;; a structure for configuration information
-(defstruct config :name :files-root :url-root :host-names)
+(defstruct config-struct :name :files-root :url-root :host-names)
 (def configs [])
 
 ;; a structure for HTTP requests
-(defstruct http-request :verb :resource :protocol :user-agent :host :accept)
+(defstruct http-request-struct :verb :resource :protocol :user-agent :host :accept)
 
 ;; the global configuration directory
 (def config-dir "")
@@ -115,10 +115,12 @@
     
 (defn serve-resource
     " serve an actual resource (a file) "
-    [stream verb resource-path]
+    [stream http-request resource-path]
     (let [file-name (str config-dir resource-path)
         resource-file (File. file-name)]
         (println "Going to serve" resource-file)
+        (println "configs = \n" configs)
+        (println "found host? \n" (some #(= (:host http-request) %) (:host-names ))
         (if
             (.exists resource-file)
             (let [resource (slurp file-name)]
@@ -141,25 +143,37 @@
                     (= (.length input) 0)
                     (reverse lines)
                     (recur (cons input lines)))))))
+                    
+(defn- make-http-request
+    " make the http-request structure from the incoming request lines 
+    :verb :resource :protocol :user-agent :host :accept
+    "
+    [request-lines]
+    (let [split-lines (map #(.split % " ") request-lines)]
+        (struct http-request-struct 
+            (first (first split-lines)) 
+            (second (first split-lines))
+            (nth (first split-lines) 2)
+            (join " " (rest (second split-lines)))
+            (first (.split (second (nth split-lines 2)) ":"))  ; removing ports
+            (second (nth split-lines 3)))))
 
 (defn handle-request
     " the function that handles the client request "
     [in out]
     (let [client-out (OutputStreamWriter. out)
-        request (read-request in)]
+        request (read-request in)
+        http-request (make-http-request request)]
         (do
-            (println "0 line =\n" (first request))
-            (println "1 line =\n" (second request))
-            (let [first-line (seq (.split (first request) " "))
-                resource (nth first-line 1)]
-                (serve-resource client-out (first first-line) (if (= resource "/") "/index.html" resource))))))
+            (println "http-request = \n" http-request)
+            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html" (:resource http-request))))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
     [config-dir]
     (def config-dir config-dir)
     (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
-        (def configs (map #(merge (struct config) (read-string (slurp (str config-dir "/" % )))) files))))
+        (def configs (map #(merge (struct config-struct) (read-string (slurp (str config-dir "/" % )))) files))))
               
 (defn run-server
     " The main server process "
