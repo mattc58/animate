@@ -133,17 +133,6 @@
                 (let [message "HTTP 404: Not Found\n"]
                     (write-resource stream (make-header (.length message) nil) message))))))))
 
-(defn- read-request
-    " read the HTTP request in and return a vector of the lines "
-    [in]
-    (binding [*in* (BufferedReader. (InputStreamReader. in))]
-        (loop [lines []]
-            (let [input (read-line)]
-                (if 
-                    (= (.length input) 0)
-                    (reverse lines)
-                    (recur (cons input lines)))))))
-                    
 (defn- make-http-request
     " make the http-request structure from the incoming request lines 
     :verb :resource :protocol :user-agent :host :accept
@@ -162,11 +151,13 @@
     " the function that handles the client request "
     [in out]
     (let [client-out (OutputStreamWriter. out)
-        request (read-request in)
+        request (line-seq (BufferedReader. (InputStreamReader. in)))
         http-request (make-http-request request)]
         (do
+            (println "request = \n" request)
             (println "http-request = \n" http-request)
-            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html"  (:resource http-request))))))
+            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html"  
+                (:resource http-request))))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
