@@ -108,10 +108,14 @@
     [stream header content]
     (doto stream
         (.write header)
-        (.flush)
         (.write content)
         (.flush)
     ))
+    
+(defn- find-config
+    " find the config for a given host-name "
+    [host-name]
+    )
     
 (defn serve-resource
     " serve an actual resource (a file) "
@@ -120,7 +124,7 @@
         resource-file (File. file-name)]
         (println "Going to serve" resource-file)
         (println "configs = \n" configs)
-        (println "found host? \n" (some #(= (:host http-request) %) (:host-names ))
+        (println "found host? " (map :host-names configs))
         (if
             (.exists resource-file)
             (let [resource (slurp file-name)]
@@ -131,7 +135,7 @@
             (catch FileNotFoundException e
                 ;; can't find the 404 file (ironically), so just send a message
                 (let [message "HTTP 404: Not Found\n"]
-                    (write-resource stream (make-header (.length message) nil) message))))))))
+                    (write-resource stream (make-header (.length message) nil) message)))))))
 
 (defn- make-http-request
     " make the http-request structure from the incoming request lines 
@@ -150,14 +154,10 @@
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (let [client-out (OutputStreamWriter. out)
-        request (line-seq (BufferedReader. (InputStreamReader. in)))
-        http-request (make-http-request request)]
-        (do
-            (println "request = \n" request)
-            (println "http-request = \n" http-request)
-            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html"  
-                (:resource http-request))))))
+    (let [request (line-seq (BufferedReader. (InputStreamReader. in))) 
+            http-request (make-http-request request)]
+        (serve-resource (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
+            "/index.html" (:resource http-request)))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
