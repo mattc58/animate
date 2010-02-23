@@ -131,7 +131,7 @@
             (catch FileNotFoundException e
                 ;; can't find the 404 file (ironically), so just send a message
                 (let [message "HTTP 404: Not Found\n"]
-                    (write-resource stream (make-header (.length message) nil) message)))))))
+                    (write-resource stream (make-header (.length message) nil) message))))))))
 
 (defn- read-request
     " read the HTTP request in and return a vector of the lines "
@@ -166,7 +166,7 @@
         http-request (make-http-request request)]
         (do
             (println "http-request = \n" http-request)
-            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html" (:resource http-request))))))
+            (serve-resource client-out http-request (if (= (:resource http-request) "/") "/index.html"  (:resource http-request))))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
@@ -194,4 +194,3 @@
          remaining] 
          (def animate-server (run-server port config-dir tmp-dir))))
 
-  
