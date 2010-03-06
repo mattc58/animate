@@ -115,27 +115,41 @@
 (defn- find-config
     " find the config for a given host-name "
     [host-name]
-    )
+    (for [item configs :while (not-empty (filter #(= % host-name) (:host-names item)))] item))
     
+(defn serve-404
+    " serve the 404 page for a site or the general one "
+    [site-404-path stream]
+    (println "404 trying to serve " site-404-path)
+    (try
+        (let [notfound (if (nil? site-404-path) (slurp (str config-dir "/404.html")) (slurp site-404-path))]
+            (write-resource stream (make-header (.length notfound) nil) notfound))
+    (catch FileNotFoundException e
+        ;; can't find the 404 file (ironically), so try the general one
+        (try
+            (let [notfound (slurp (str config-dir "/404.html"))]
+                (write-resource stream (make-header (.length notfound) nil) notfound))
+        (catch FileNotFoundException e
+            ;; no site-wide 404, so just send a message
+            (let [message "HTTP 404: Not Found\n"]
+                (write-resource stream (make-header (.length message) nil) message)))))))
+
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream http-request resource-path]
-    (let [file-name (str config-dir resource-path)
-        resource-file (File. file-name)]
-        (println "Going to serve" resource-file)
-        (println "configs = \n" configs)
-        (println "found host? " (map :host-names configs))
+    (let [host (find-config (:host http-request))]
+        (println "Host = " host)
         (if
-            (.exists resource-file)
-            (let [resource (slurp file-name)]
-                (write-resource stream (make-header (.length resource) file-name) resource))
-            (try
-                (let [notfound (slurp (str config-dir "/404.html"))]
-                    (write-resource stream (make-header (.length notfound) nil) notfound))
-            (catch FileNotFoundException e
-                ;; can't find the 404 file (ironically), so just send a message
-                (let [message "HTTP 404: Not Found\n"]
-                    (write-resource stream (make-header (.length message) nil) message)))))))
+            (empty? host)
+            (serve-404 nil stream)
+            (let [file-name (str (:files-root (first host)) resource-path)
+                resource-file (File. file-name)]
+                (println "Going to serve " resource-file)
+                (if
+                    (.exists resource-file)
+                    (let [resource (slurp file-name)]
+                        (write-resource stream (make-header (.length resource) file-name) resource))
+                    (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
 
 (defn- make-http-request
     " make the http-request structure from the incoming request lines 
@@ -143,6 +157,7 @@
     "
     [request-lines]
     (let [split-lines (map #(.split % " ") request-lines)]
+        (println2 request-lines) ; PROBLEM: safari seems different than curl
         (struct http-request-struct 
             (first (first split-lines)) 
             (second (first split-lines))
@@ -156,6 +171,7 @@
     [in out]
     (let [request (line-seq (BufferedReader. (InputStreamReader. in))) 
             http-request (make-http-request request)]
+        (println "REQUEST: " http-request)
         (serve-resource (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
@@ -169,7 +185,6 @@
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
-    (println "Going to read config files at " config-dir)
     (load-config-files config-dir)
     (println "Listening to port" port "...")
     (create-server port handle-request))
