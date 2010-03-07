@@ -4,7 +4,7 @@
     (:gen-class)
     (:use [clojure.contrib.command-line :only (with-command-line)])
     (:use [clojure.contrib.server-socket :only (create-server)])
-    (:use (clojure.contrib [string :only (join)]))
+    (:require [clojure.contrib.string :as ccs])
     (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
@@ -12,9 +12,10 @@
 ;; a structure for configuration information
 (defstruct config-struct :name :files-root :url-root :host-names)
 (def configs [])
+(def req [])
 
 ;; a structure for HTTP requests
-(defstruct http-request-struct :verb :resource :protocol :user-agent :host :accept)
+;(defstruct http-request-struct :verb :resource :protocol :user-agent :host :accept)
 
 ;; the global configuration directory
 (def config-dir "")
@@ -22,7 +23,7 @@
 (defn- make-css-header
     " make a CSS header "
     [content-length]
-    (join "\n"
+    (ccs/join "\n"
         [
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
@@ -49,7 +50,7 @@
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
-    (join "\n"
+    (ccs/join "\n"
         [ 
             "HTTP/1.1 200 OK"
             "Server: Animate"
@@ -61,7 +62,7 @@
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
-    (join "\n"
+    (ccs/join "\n"
         [ 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
@@ -73,7 +74,7 @@
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
-    (join "\n"
+    (ccs/join "\n"
         [ 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
@@ -154,24 +155,30 @@
 (defn- make-http-request
     " make the http-request structure from the incoming request lines 
     :verb :resource :protocol :user-agent :host :accept
+    The header comes in like:
+    GET /index.html HTTP/1.
+    <header key>: <header value>
+    <header key>: <header value>
+    and so on
     "
     [request-lines]
-    (let [split-lines (map #(.split % " ") request-lines)]
-        (println2 request-lines) ; PROBLEM: safari seems different than curl
-        (struct http-request-struct 
-            (first (first split-lines)) 
-            (second (first split-lines))
-            (nth (first split-lines) 2)
-            (join " " (rest (second split-lines)))
-            (first (.split (second (nth split-lines 2)) ":"))  ; removing ports
-            (second (nth split-lines 3)))))
+    (let [first-line (.split (first request-lines) " ") lines (filter not-empty (rest request-lines))]
+        (def rl request-lines)
+        ; go through each of the following header lines associng them to the map
+        (merge (hash-map
+            :verb (first first-line)
+            :resource (second first-line)
+            :protocol (nth first-line 2))
+            (zipmap
+                (map #(keyword (ccs/lower-case (.substring % 0 (.indexOf % ":")))) lines)
+                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))))
 
 (defn handle-request
     " the function that handles the client request "
     [in out]
     (let [request (line-seq (BufferedReader. (InputStreamReader. in))) 
             http-request (make-http-request request)]
-        (println "REQUEST: " http-request)
+        (def req http-request)
         (serve-resource (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
