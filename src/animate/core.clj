@@ -37,7 +37,7 @@
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (join "\n"
+        (ccs/join "\n"
             [
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
@@ -108,7 +108,9 @@
     " write a resourse with its header and then its content "
     [stream header content]
     (doto stream
+        (println header)
         (.write header)
+        (println content)
         (.write content)
         (.flush)
     ))
@@ -116,21 +118,24 @@
 (defn- find-config
     " find the config for a given host-name "
     [host-name]
-    (for [item configs :while (not-empty (filter #(= % host-name) (:host-names item)))] item))
+    (for [item configs :while (not-empty (filter #(.startsWith host-name %) (:host-names item)))] item))
     
 (defn serve-404
     " serve the 404 page for a site or the general one "
     [site-404-path stream]
-    (println "404 trying to serve " site-404-path)
+    (println "going to serve a 404")
     (try
+        (println "break 1")
         (let [notfound (if (nil? site-404-path) (slurp (str config-dir "/404.html")) (slurp site-404-path))]
             (write-resource stream (make-header (.length notfound) nil) notfound))
     (catch FileNotFoundException e
         ;; can't find the 404 file (ironically), so try the general one
         (try
+            (println "break 2")
             (let [notfound (slurp (str config-dir "/404.html"))]
                 (write-resource stream (make-header (.length notfound) nil) notfound))
         (catch FileNotFoundException e
+            (println "break 3")
             ;; no site-wide 404, so just send a message
             (let [message "HTTP 404: Not Found\n"]
                 (write-resource stream (make-header (.length message) nil) message)))))))
@@ -139,13 +144,12 @@
     " serve an actual resource (a file) "
     [stream http-request resource-path]
     (let [host (find-config (:host http-request))]
-        (println "Host = " host)
         (if
             (empty? host)
             (serve-404 nil stream)
             (let [file-name (str (:files-root (first host)) resource-path)
                 resource-file (File. file-name)]
-                (println "Going to serve " resource-file)
+                (println "Going to serve content")
                 (if
                     (.exists resource-file)
                     (let [resource (slurp file-name)]
@@ -163,7 +167,6 @@
     "
     [request-lines]
     (let [first-line (.split (first request-lines) " ") lines (filter not-empty (rest request-lines))]
-        (def rl request-lines)
         ; go through each of the following header lines associng them to the map
         (merge (hash-map
             :verb (first first-line)
@@ -178,7 +181,6 @@
     [in out]
     (let [request (line-seq (BufferedReader. (InputStreamReader. in))) 
             http-request (make-http-request request)]
-        (def req http-request)
         (serve-resource (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
