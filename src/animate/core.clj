@@ -12,10 +12,6 @@
 ;; a structure for configuration information
 (defstruct config-struct :name :files-root :url-root :host-names)
 (def configs [])
-(def req [])
-
-;; a structure for HTTP requests
-;(defstruct http-request-struct :verb :resource :protocol :user-agent :host :accept)
 
 ;; the global configuration directory
 (def config-dir "")
@@ -172,9 +168,10 @@
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (let [request (line-seq (BufferedReader. (InputStreamReader. in))) 
+    (let [request (line-seq (BufferedReader. (InputStreamReader. in)))
+            client-out (OutputStreamWriter. out) 
             http-request (make-http-request request)]
-        (serve-resource (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
+        (serve-resource  client-out http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
 (defn load-config-files
