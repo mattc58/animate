@@ -4,7 +4,7 @@
     (:gen-class)
     (:use [clojure.contrib.command-line :only (with-command-line)])
     (:use [clojure.contrib.server-socket :only (create-server)])
-    (:require [clojure.contrib.string :as ccs])
+    (:use (clojure.contrib [string :only (join lower-case)]))
     (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
@@ -19,7 +19,7 @@
 (defn- make-css-header
     " make a CSS header "
     [content-length]
-    (ccs/join "\n"
+    (join "\n"
         [
             "HTTP/1.1 200 OK"
             "Content-Type: text/css"
@@ -33,7 +33,7 @@
     " make a CSS header "
     [content-length file-name]
     (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (ccs/join "\n"
+        (join "\n"
             [
                 "HTTP/1.1 200 OK"
                 (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
@@ -46,7 +46,7 @@
 (defn- make-html-header
     " make the HTTP 200 header "
     [content-length]
-    (ccs/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 200 OK"
             "Server: Animate"
@@ -58,7 +58,7 @@
 (defn- make-404-header
     " make the HTTP 404 not found header "
     [content-length]
-    (ccs/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 404 Not Found"
             "Server: Animate"
@@ -70,7 +70,7 @@
 (defn- make-500-header
     " make the HTTP 500 server error header "
     [content-length]
-    (ccs/join "\n"
+    (join "\n"
         [ 
             "HTTP/1.1 500 Server Error"
             "Server: Animate"
@@ -129,21 +129,41 @@
             (let [message "HTTP 404: Not Found\n"]
                 (write-resource stream (make-header (.length message) nil) message)))))))
 
+                (defn serve-resource
+                    " serve an actual resource (a file) "
+                    [stream http-request resource-path]
+                    (let [file-name (str config-dir resource-path)
+                        resource-file (File. file-name)]
+                        (println "Going to serve" resource-file)
+                        (println "configs = \n" configs)
+                        (println "found host? " (map :host-names configs))
+                        (if
+                            (.exists resource-file)
+                            (let [resource (slurp file-name)]
+                                (write-resource stream (make-header (.length resource) file-name) resource))
+                            (try
+                                (let [notfound (slurp (str config-dir "/404.html"))]
+                                    (write-resource stream (make-header (.length notfound) nil) notfound))
+                            (catch FileNotFoundException e
+                                ;; can't find the 404 file (ironically), so just send a message
+                                (let [message "HTTP 404: Not Found\n"]
+                                    (write-resource stream (make-header (.length message) nil) message)))))))
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream http-request resource-path]
-    (let [host (find-config (:host http-request))]
-        (if
-            (empty? host)
-            (serve-404 nil stream)
-            (let [file-name (str (:files-root (first host)) resource-path)
-                resource-file (File. file-name)]
-                (println "Going to serve content")
-                (if
-                    (.exists resource-file)
-                    (let [resource (slurp file-name)]
-                        (write-resource stream (make-header (.length resource) file-name) resource))
-                    (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
+    ; (let [host (find-config (:host http-request))]
+    (println "bye"))
+        ; (if
+        ;     (empty? host)
+        ;     (serve-404 nil stream)
+        ;     (let [file-name (str (:files-root (first host)) resource-path)
+        ;         resource-file (File. file-name)]
+        ;     (println "Going to serve content")))))
+                ; (if
+                ;     (.exists resource-file)
+                ;     (let [resource (slurp file-name)]
+                ;         (write-resource stream (make-header (.length resource) file-name) resource))
+                ;     (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
 
 (defn- make-http-request
     " make the http-request structure from the incoming request lines 
@@ -155,23 +175,25 @@
     and so on
     "
     [request-lines]
-    (let [first-line (.split (first request-lines) " ") lines (filter not-empty (rest request-lines))]
-        ; go through each of the following header lines associng them to the map
-        (merge (hash-map
-            :verb (first first-line)
-            :resource (second first-line)
-            :protocol (nth first-line 2))
-            (zipmap
-                (map #(keyword (ccs/lower-case (.substring % 0 (.indexOf % ":")))) lines)
-                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))))
+    ;; MATT: the problem is here. Something with sockets, line-seq, laziness, etc.
+    ;; either go back to the old code or use clojure.contrib.io, etc.
+    (println "Lines in rl: " (count request-lines)))
+    ; (let [first-line (.split (first request-lines) " ") lines (filter not-empty (rest request-lines))]
+    ;     ; go through each of the following header lines associng them to the map
+    ;     (merge (hash-map
+    ;         :verb (first first-line)
+    ;         :resource (second first-line)
+    ;         :protocol (nth first-line 2))
+    ;         (zipmap
+    ;             (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
+    ;             (map #(.substring % (+ (.indexOf % ":") 2)) lines)))))
 
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (let [request (line-seq (BufferedReader. (InputStreamReader. in)))
-            client-out (OutputStreamWriter. out) 
+    (let [request (force (line-seq (BufferedReader. (InputStreamReader. in))))
             http-request (make-http-request request)]
-        (serve-resource  client-out http-request (if (= (:resource http-request) "/") 
+        (serve-resource  (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
 (defn load-config-files
