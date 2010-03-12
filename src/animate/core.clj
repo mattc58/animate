@@ -101,19 +101,15 @@
         (= type "image") (make-image-header content-length file-name)
         (= type "html") (make-html-header content-length)
         (= type "404") (make-404-header content-length)
-        :else (make-500-header content-length)
-    )))
+        :else (make-500-header content-length))))
     
 (defn write-resource
     " write a resourse with its header and then its content "
     [stream header content]
     (doto stream
-        (println header)
         (.write header)
-        (println content)
         (.write content)
-        (.flush)
-    ))
+        (.flush)))
     
 (defn- find-config
     " find the config for a given host-name "
@@ -125,17 +121,14 @@
     [site-404-path stream]
     (println "going to serve a 404")
     (try
-        (println "break 1")
         (let [notfound (if (nil? site-404-path) (slurp (str config-dir "/404.html")) (slurp site-404-path))]
             (write-resource stream (make-header (.length notfound) nil) notfound))
     (catch FileNotFoundException e
         ;; can't find the 404 file (ironically), so try the general one
         (try
-            (println "break 2")
             (let [notfound (slurp (str config-dir "/404.html"))]
                 (write-resource stream (make-header (.length notfound) nil) notfound))
         (catch FileNotFoundException e
-            (println "break 3")
             ;; no site-wide 404, so just send a message
             (let [message "HTTP 404: Not Found\n"]
                 (write-resource stream (make-header (.length message) nil) message)))))))

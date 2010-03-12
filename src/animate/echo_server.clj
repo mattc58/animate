@@ -1,6 +1,6 @@
 ;; example code taken from 
 ;; http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure/1223928#1223928 by alanlcode
-(ns echo-server
+(ns animate.echo-server
   (:gen-class)
   (:use clojure.contrib.server-socket)
   (:import (java.io BufferedReader InputStreamReader OutputStreamWriter)))
