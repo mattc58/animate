@@ -111,7 +111,6 @@
 (defn serve-404
     " serve the 404 page for a site or the general one "
     [site-404-path stream]
-    (println "going to serve a 404")
     (try
         (let [notfound (if (nil? site-404-path) (slurp (str config-dir "/404.html")) (slurp site-404-path))]
             (write-resource stream (make-header (.length notfound) nil) notfound))
@@ -125,32 +124,19 @@
             (let [message "HTTP 404: Not Found\n"]
                 (write-resource stream (make-header (.length message) nil) message)))))))
 
-                (defn serve-resource
-                    " serve an actual resource (a file) "
-                    [stream http-request resource-path]
-                    (let [file-name (str config-dir resource-path)
-                        resource-file (File. file-name)]
-                        (if
-                            (.exists resource-file)
-                            (let [resource (slurp file-name)]
-                                (write-resource stream (make-header (.length resource) file-name) resource))
-                            (try
-                                (let [notfound (slurp (str config-dir "/404.html"))]
-                                    (write-resource stream (make-header (.length notfound) nil) notfound))
-                            (catch FileNotFoundException e
-                                ;; can't find the 404 file (ironically), so just send a message
-                                (let [message "HTTP 404: Not Found\n"]
-                                    (write-resource stream (make-header (.length message) nil) message)))))))
-
 (defn- find-config
     " find the config for a given host-name "
     [host-name]
-    (for [item configs :while (not-empty (filter #(.startsWith host-name %) (:host-names item)))] item))
+    (println "Looking for " host-name " in " (map :host-names configs))
+    (filter #(not (nil? %)) 
+        (map (fn [item] (if (not-empty (take-while #(.startsWith host-name %) (:host-names item))) item)) configs)))
+    ;(for [item configs :while (not-empty (filter #(.startsWith host-name %) (:host-names item)))] item))
 
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream http-request resource-path]
     (let [host (find-config (:host http-request))]
+        (println "Going to serve " resource-path " for " (first host) " for request " http-request)
         (if
              (empty? host)
              (serve-404 nil stream)
