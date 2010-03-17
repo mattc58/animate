@@ -130,7 +130,6 @@
     (println "Looking for " host-name " in " (map :host-names configs))
     (filter #(not (nil? %)) 
         (map (fn [item] (if (not-empty (take-while #(.startsWith host-name %) (:host-names item))) item)) configs)))
-    ;(for [item configs :while (not-empty (filter #(.startsWith host-name %) (:host-names item)))] item))
 
 (defn serve-resource
     " serve an actual resource (a file) "
@@ -179,14 +178,14 @@
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
     [config-dir]
-    (def config-dir config-dir)
     (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
-        (def configs (map #(merge (struct config-struct) (read-string (slurp (str config-dir "/" % )))) files))))
+        (map #(merge (struct config-struct) (read-string (slurp (str config-dir "/" % )))) files)))
               
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
-    (load-config-files config-dir)
+    (def config-dir config-dir)
+    (def configs (load-config-files config-dir))
     (println "Listening to port" port "...")
     (create-server port handle-request))
   
