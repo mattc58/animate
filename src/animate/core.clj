@@ -130,9 +130,6 @@
                     [stream http-request resource-path]
                     (let [file-name (str config-dir resource-path)
                         resource-file (File. file-name)]
-                        (println "Going to serve" resource-file)
-                        (println "configs = \n" configs)
-                        (println "found host? " (map :host-names configs))
                         (if
                             (.exists resource-file)
                             (let [resource (slurp file-name)]
@@ -148,7 +145,6 @@
 (defn- find-config
     " find the config for a given host-name "
     [host-name]
-    (println "searching for " host-name " in " configs)
     (for [item configs :while (not-empty (filter #(.startsWith host-name %) (:host-names item)))] item))
 
 (defn serve-resource
@@ -177,13 +173,14 @@
     "
     [request-lines]
     (let [first-line (.split (first request-lines) " ") lines (take-while #(not-empty %) (rest request-lines))]
-        (merge (hash-map
-         :verb (first first-line)
-         :resource (second first-line)
-         :protocol (nth first-line 2)))
-         (zipmap
-             (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
-             (map #(.substring % (+ (.indexOf % ":") 2)) lines))))
+        (merge 
+            (hash-map
+                :verb (first first-line)
+                :resource (second first-line)
+                :protocol (nth first-line 2))
+            (zipmap
+                (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
+                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))))
 
 (defn handle-request
     " the function that handles the client request "
