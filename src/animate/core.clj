@@ -176,16 +176,13 @@
     and so on
     "
     [request-lines]
-    ;; MATT: the problem is here. Something with sockets, line-seq, laziness, etc.
-    ;; either go back to the old code or use clojure.contrib.io, etc.
-    (let [first-line (.split (first request-lines) " ") lines (rest request-lines)]
+    (let [first-line (.split (first request-lines) " ") lines (take-while #(not-empty %) (rest request-lines))]
         (merge (hash-map
          :verb (first first-line)
          :resource (second first-line)
          :protocol (nth first-line 2)))
          (zipmap
              (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
-             ;; MATT: maybe catch the case where the indexOf goes over index
              (map #(.substring % (+ (.indexOf % ":") 2)) lines))))
 
 (defn handle-request
@@ -193,11 +190,8 @@
     [in out]
     (let [request (read-lines in)
             http-request (make-http-request request)]
-        (write-resource (OutputStreamWriter. out) "header" "content")))
-    ;(let [request (read-lines in)
-    ;        http-request (make-http-request request)]
-    ;    (serve-resource  (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
-    ;        "/index.html" (:resource http-request)))))
+        (serve-resource  (OutputStreamWriter. out) http-request (if (= (:resource http-request) "/") 
+            "/index.html" (:resource http-request)))))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
