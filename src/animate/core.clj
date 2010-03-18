@@ -147,11 +147,11 @@
                          (write-resource stream (make-header (.length resource) file-name) resource))
                      (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
 
-(defn- make-http-request
+(defn make-http-request
     " make the http-request structure from the incoming request lines 
     :verb :resource :protocol :user-agent :host :accept
     The header comes in like:
-    GET /index.html HTTP/1.
+    GET /index.html HTTP/1.1
     <header key>: <header value>
     <header key>: <header value>
     and so on
