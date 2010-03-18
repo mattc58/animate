@@ -1,0 +1,12 @@
+h1 {
+    font-size: 200%;
+    font-color: red;
+}
+
+body {
+    background: red;
+}
+
+#blah {
+    font-size: 500%;
+}

@@ -1,4 +1,4 @@
-;; Tests of the HTTP header functionality
+;; Tests of the HTTP requests and configs functionality
 
 (ns test-requests
     (:use [clojure.test :only (deftest, is)])
