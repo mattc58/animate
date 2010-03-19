@@ -1,6 +1,6 @@
 ;; Tests of the HTTP requests and configs functionality
 
-(ns test-requests
+(ns test-requests-configs
     (:use [clojure.test :only (deftest, is)])
     (:use animate.core))
     
