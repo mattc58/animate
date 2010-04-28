@@ -185,7 +185,6 @@
     [port config-dir tmp-dir]
     (def *config-dir* config-dir)
     (def *configs* (load-config-files *config-dir*))
-    (println "Listening to port" port "...")
     (create-server port handle-request))
   
 (defn -main [& args]
