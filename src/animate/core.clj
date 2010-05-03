@@ -3,10 +3,10 @@
 (ns animate.core
     (:gen-class)
     (:use [clojure.contrib.command-line :only (with-command-line)])
-    (:use [clojure.contrib.io :only (read-lines)])
+    (:use [clojure.contrib.io :only (read-lines, to-byte-array, copy)])
     (:use [clojure.contrib.server-socket :only (create-server)])
     (:use (clojure.contrib [string :only (join lower-case)]))
-    (:import (java.io File FilenameFilter FileNotFoundException BufferedReader InputStreamReader OutputStreamWriter)))
+    (:import (java.io File FilenameFilter FileNotFoundException BufferedReader OutputStream InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
@@ -101,13 +101,11 @@
         :else (make-500-header content-length))))
     
 (defn write-resource
-    " write a resourse with its header and then its content "
-    [stream header content]
-    (doto (OutputStreamWriter. stream)
-        (.write header)
-        (.write content)
-        (.flush)))
-    
+    " write the resource "
+    [out header content file]
+    (copy header out)
+    (copy file out))
+
 (defn serve-404
     " serve the 404 page for a site or the general one "
     [site-404-path stream]
@@ -129,12 +127,22 @@
     [host-name configs]
     (filter #(not (nil? %)) 
         (map (fn [item] (if (not-empty (filter #(.startsWith host-name %) (:host-names item))) item nil)) configs)))
+        
+(defn get-resource
+    [file]
+    (let [file-name (.getPath file)]
+        (or 
+            (.contains file-name ".jpg") 
+            (.contains file-name ".gif") 
+            (.contains file-name ".png"))
+        (to-byte-array file)
+        (slurp file-name)))
 
 (defn serve-resource
     " serve an actual resource (a file) "
     [stream configs http-request resource-path]
     (let [host (find-config (:host http-request) configs)]
-        (println "Going to serve " resource-path " for " (first host) " for request " http-request)
+        (println "Going to serve " resource-path " for " (first host))
         (if
              (empty? host)
              (serve-404 nil stream)
@@ -142,8 +150,8 @@
                  resource-file (File. file-name)]
                  (if
                      (.exists resource-file)
-                     (let [resource (slurp file-name)]
-                         (write-resource stream (make-header (.length resource) file-name) resource))
+                     (let [resource (get-resource resource-file)]
+                         (write-resource stream (make-header (count resource) file-name) resource resource-file))
                      (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
 
 (defn make-http-request
@@ -185,7 +193,7 @@
     [port config-dir tmp-dir]
     (def *config-dir* config-dir)
     (def *configs* (load-config-files *config-dir*))
-    (create-server port handle-request))
+    (create-server (Integer. port) handle-request))
   
 (defn -main [& args]
     "the main function, gets called on startup to process command line args"
