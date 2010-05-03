@@ -100,12 +100,6 @@
         (= type "404") (make-404-header content-length)
         :else (make-500-header content-length))))
     
-(defn write-resource
-    " write the resource "
-    [out header content file]
-    (copy header out)
-    (copy file out))
-
 (defn serve-404
     " serve the 404 page for a site or the general one "
     [site-404-path stream]
@@ -128,15 +122,11 @@
     (filter #(not (nil? %)) 
         (map (fn [item] (if (not-empty (filter #(.startsWith host-name %) (:host-names item))) item nil)) configs)))
         
-(defn get-resource
-    [file]
-    (let [file-name (.getPath file)]
-        (or 
-            (.contains file-name ".jpg") 
-            (.contains file-name ".gif") 
-            (.contains file-name ".png"))
-        (to-byte-array file)
-        (slurp file-name)))
+(defn write-resource
+    " write the resource "
+    [out header file]
+    (copy header out)
+    (copy file out))
 
 (defn serve-resource
     " serve an actual resource (a file) "
@@ -150,8 +140,7 @@
                  resource-file (File. file-name)]
                  (if
                      (.exists resource-file)
-                     (let [resource (get-resource resource-file)]
-                         (write-resource stream (make-header (count resource) file-name) resource resource-file))
+                     (write-resource stream (make-header (.length resource-file) file-name) resource-file)
                      (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
 
 (defn make-http-request
