@@ -103,7 +103,7 @@
 (defn write-resource
     " write a resourse with its header and then its content "
     [stream header content]
-    (doto stream
+    (doto (OutputStreamWriter. stream)
         (.write header)
         (.write content)
         (.flush)))
@@ -171,7 +171,7 @@
     [in out]
     (let [request (read-lines in)
             http-request (make-http-request request)]
-        (serve-resource  (OutputStreamWriter. out) *configs* http-request (if (= (:resource http-request) "/") 
+        (serve-resource out *configs* http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)))))
 
 (defn load-config-files
