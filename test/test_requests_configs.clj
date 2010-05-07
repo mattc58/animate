@@ -15,7 +15,7 @@
         
 (deftest test-make-http-request
     " test that we can turn the textual request coming in into a hashmap "
-    (let [http-request (make-http-request ["GET /index.html HTTP/1.1" "Host: localhost" "Accept: */*" "User-Agent: Test"])]
+    (let [http-request (parse-http-request ["GET /index.html HTTP/1.1" "Host: localhost" "Accept: */*" "User-Agent: Test"])]
         (is http-request)
         (is (= "GET" (:verb http-request)))
         (is (= "/index.html" (:resource http-request)))

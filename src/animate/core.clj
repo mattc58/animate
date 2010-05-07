@@ -1,7 +1,11 @@
 ;; The main functions for Animate
+;; These functions will make calls out to static if it's a static file, or to applciations if 
+;; the request belongs to an application
 
 (ns animate.core
     (:gen-class)
+    (:require [animate.headers :as headers])
+    (:require [animate.static :as static])
     (:use [clojure.contrib.command-line :only (with-command-line)])
     (:use [clojure.contrib.io :only (read-lines, to-byte-array, copy)])
     (:use [clojure.contrib.server-socket :only (create-server)])
@@ -17,135 +21,13 @@
 ;; the global configuration directory
 (def *config-dir* "")
 
-(defn- make-css-header
-    " make a CSS header "
-    [content-length]
-    (join "\n"
-        [
-            "HTTP/1.1 200 OK"
-            "Content-Type: text/css"
-            (str "Content-Length: " content-length) 
-            "Server: Animate"
-            "X-Powered-By: Animate"
-            "\n"]
-            ))
-        
-(defn- make-image-header
-    " make a CSS header "
-    [content-length file-name]
-    (let [extension (.toLowerCase (.substring file-name (+ 1 (.lastIndexOf file-name ".")) (.length file-name)))]
-        (join "\n"
-            [
-                "HTTP/1.1 200 OK"
-                (str "Content-Type: image/" (if (= extension "jpg") "jpeg" extension))
-                (str "Content-Length: " content-length) 
-                "Server: Animate"
-                "X-Powered-By: Animate"
-                "\n"]
-                )))
-
-(defn- make-html-header
-    " make the HTTP 200 header "
-    [content-length]
-    (join "\n"
-        [ 
-            "HTTP/1.1 200 OK"
-            "Server: Animate"
-            "X-Powered-By: Animate"
-            "Content-Type: text/html; charset=utf-8"
-            (str "Content-Length: " content-length) 
-            "\n"]))
-    
-(defn- make-404-header
-    " make the HTTP 404 not found header "
-    [content-length]
-    (join "\n"
-        [ 
-            "HTTP/1.1 404 Not Found"
-            "Server: Animate"
-            "X-Powered-By: Animate"
-            "Content-Type: text/html; charset=utf-8"
-            (str "Content-Length: " content-length) 
-            "\n"]))
-
-(defn- make-500-header
-    " make the HTTP 500 server error header "
-    [content-length]
-    (join "\n"
-        [ 
-            "HTTP/1.1 500 Server Error"
-            "Server: Animate"
-            "X-Powered-By: Animate"
-            "Content-Type: text/html; charset=utf-8"
-            (str "Content-Length: " content-length) 
-            "\n"]))
-            
-(defn make-header
-    " generic function to make an HTTP header for a given type "
-    [content-length file-name]
-    (let [type (cond
-        (nil? file-name) "404"
-        (.contains file-name ".css") "css"
-        ;; HACK: isn't there a contains-one-of type of function?
-        (or 
-            (.contains file-name ".jpg") 
-            (.contains file-name ".gif") 
-            (.contains file-name ".png")) "image"
-        (.contains file-name ".html") "html"
-        :else nil)]
-    (cond
-        (= type "css") (make-css-header content-length)
-        (= type "image") (make-image-header content-length file-name)
-        (= type "html") (make-html-header content-length)
-        (= type "404") (make-404-header content-length)
-        :else (make-500-header content-length))))
-    
-(defn write-resource
-    " write the resource "
-    [out header resource file]
-    (copy header out)
-    (if resource
-        (copy resource out)
-        (copy file out)))
-
-(defn serve-404
-    " serve the 404 page for a site or the general one "
-    [site-404-path stream]
-    (try
-        (let [notfound (if (nil? site-404-path) (slurp (str *config-dir* "/404.html")) (slurp site-404-path))]
-            (write-resource stream (make-header (.length notfound) nil) notfound nil))
-    (catch FileNotFoundException e
-        ;; can't find the 404 file (ironically), so try the general one
-        (try
-            (let [notfound (slurp (str *config-dir* "/404.html"))]
-                (write-resource stream (make-header (.length notfound) nil) notfound nil))
-        (catch FileNotFoundException e
-            ;; no site-wide 404, so just send a message
-            (let [message "HTTP 404: Not Found\n"]
-                (write-resource stream (make-header (.length message) nil) message nil)))))))
-
 (defn find-config
     " find the config for a given host-name "
     [host-name configs]
     (filter #(not (nil? %)) 
         (map (fn [item] (if (not-empty (filter #(.startsWith host-name %) (:host-names item))) item nil)) configs)))
         
-(defn serve-resource
-    " serve an actual resource (a file) "
-    [stream configs http-request resource-path]
-    (let [host (find-config (:host http-request) configs)]
-        (println "Going to serve " resource-path " for " (first host))
-        (if
-             (empty? host)
-             (serve-404 nil stream)
-             (let [file-name (str (:files-root (first host)) resource-path)
-                 resource-file (File. file-name)]
-                 (if
-                     (.exists resource-file)
-                     (write-resource stream (make-header (.length resource-file) file-name) nil resource-file)
-                     (serve-404 (str (:files-root (first host)) "/404.html") stream))))))
-
-(defn make-http-request
+(defn parse-http-request
     " make the http-request structure from the incoming request lines 
     :verb :resource :protocol :user-agent :host :accept
     The header comes in like:
@@ -169,9 +51,10 @@
     " the function that handles the client request "
     [in out]
     (let [request (read-lines in)
-            http-request (make-http-request request)]
-        (serve-resource out *configs* http-request (if (= (:resource http-request) "/") 
-            "/index.html" (:resource http-request)))))
+            http-request (parse-http-request request)
+            host (find-config (:host http-request) *configs*)]
+        (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
+            "/index.html" (:resource http-request)) *config-dir*)))
 
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
