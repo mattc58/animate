@@ -39,7 +39,17 @@
         (is (< 0 (count (read-lines (reader connection)))))))
 
 (deftest test-mc-content
-    " test that the right content comes up for dev1.mattculbreth.com ")
-    
+    " test that the right content comes up for dev1.mattculbreth.com "
+    (let [  connection (input-stream "http://dev1.mattculbreth.com:6000")
+            lines (read-lines (reader connection))]
+        (is (some #{true} (map #(.contains % "<title>Matt Culbreth</title>") lines)))
+        (is (some #{true} (map #(.contains % "<img src=\"/mattc_profile.jpg\">") lines)))
+        (is (not (some #{true} (map #(.contains % "<title>Yield Idea</title>") lines))))))
+        
+            
 (deftest test-yi-content
-    " test that the right content comes up for local.yieldidea.com ")
+    " test that the right content comes up for local.yieldidea.com "
+    (let [  connection (input-stream "http://local.yieldidea.com:6000")
+            lines (read-lines (reader connection))]
+        (is (some #{true} (map #(.contains % "<title>Yield Idea</title>") lines)))
+        (is (not (some #{true} (map #(.contains % "<title>Matt Culbreth</title>") lines))))))
