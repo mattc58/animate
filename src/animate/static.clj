@@ -32,7 +32,6 @@
 (defn serve-resource
     " serve an actual resource (a file) "
     [host stream http-request resource-path config-dir]
-    (println "Going to serve " resource-path " for " (first host))
     (if
          (empty? host)
          (serve-404 nil stream)

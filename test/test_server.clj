@@ -13,7 +13,7 @@
 (defn server-fixture
     " this server fixture will be run once and will start the test server "
     [f]
-    (-main "--port" "6000")
+    (def animate-server (-main "--port" "6000" "--config-dir" *animate-test-dir*))
     (f)
     (close-server animate-server))
 
@@ -23,6 +23,13 @@
     " test that the server is alive "
     (let [connection (input-stream "http://localhost:6000")]
         (is (< 0 (count (read-lines (reader connection)))))))
+        
+(deftest test-ini-file
+    " test that we can read an ini file for settings "
+    (def server (-main "--ini-file" "settings_test.ini"))
+    (let [connection (input-stream "http://localhost:9988")]
+        (is (< 0 (count (read-lines (reader connection))))))
+    (close-server server))
         
 (deftest test-mc-alive
     " test that dev1.mattculbreth.com comes up "
@@ -45,8 +52,7 @@
         (is (some #{true} (map #(.contains % "<title>Matt Culbreth</title>") lines)))
         (is (some #{true} (map #(.contains % "<img src=\"/mattc_profile.jpg\">") lines)))
         (is (not (some #{true} (map #(.contains % "<title>Yield Idea</title>") lines))))))
-        
-            
+                
 (deftest test-yi-content
     " test that the right content comes up for local.yieldidea.com "
     (let [  connection (input-stream "http://local.yieldidea.com:6000")

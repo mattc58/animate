@@ -86,5 +86,5 @@
          remaining] 
          (let [settings (if ini-file (read-file-to-hashmap ini-file) {:port port :ip ip :config-dir config-dir :tmp-dir tmp-dir})] 
              (println "Animate loading with settings: " settings)
-             (def animate-server (run-server (:port settings) (:config-dir settings) (:tmp-dir settings))))))
+             (run-server (:port settings) (:config-dir settings) (:tmp-dir settings)))))
 
