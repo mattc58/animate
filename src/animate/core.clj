@@ -56,17 +56,17 @@
         (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)) *config-dir*)))
 
+(defn read-file-to-hashmap
+    " load a file into a hashmap "
+    [file]
+    (read-string (slurp (str file))))
+
 (defn load-config-files
     " load the configuration files and put them in the configs vector "
     [config-dir]
     (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
-        (map #(merge (struct config-struct) (read-string (slurp (str config-dir "/" % )))) files)))
+        (map #(merge (struct config-struct) (read-file-to-hashmap (str config-dir "/" % ))) files)))
               
-(defn load-ini-file
-    " load the settings from the ini file "
-    [ini-file]
-    (read-string (slurp (str ini-file))))
-
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
@@ -84,7 +84,7 @@
          [tmp-dir "This is the tmp directory" "./animate/tmp"]
          [ini-file "The ini file in use" nil]
          remaining] 
-         (let [settings (if ini-file (load-ini-file ini-file) {:port port :ip ip :config-dir config-dir :tmp-dir tmp-dir})] 
+         (let [settings (if ini-file (read-file-to-hashmap ini-file) {:port port :ip ip :config-dir config-dir :tmp-dir tmp-dir})] 
              (println "Animate loading with settings: " settings)
              (def animate-server (run-server (:port settings) (:config-dir settings) (:tmp-dir settings))))))
 
