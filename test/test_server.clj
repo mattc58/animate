@@ -52,7 +52,14 @@
         (is (some #{true} (map #(.contains % "<title>Matt Culbreth</title>") lines)))
         (is (some #{true} (map #(.contains % "<img src=\"/mattc_profile.jpg\">") lines)))
         (is (not (some #{true} (map #(.contains % "<title>Yield Idea</title>") lines))))))
-                
+        
+(deftest test-mc-hierarchy
+    " test that we can get a folder that's below the root "
+    (let [  connection (input-stream "http://dev1.mattculbreth.com:6000/about/index.html")
+            lines (read-lines (reader connection))]
+        (is (some #{true} (map #(.contains % "<title>About Matt Culbreth</title>") lines)))
+        (is (not (some #{true} (map #(.contains % "<title>Yield Idea</title>") lines))))))
+                      
 (deftest test-yi-content
     " test that the right content comes up for local.yieldidea.com "
     (let [  connection (input-stream "http://local.yieldidea.com:6000")
