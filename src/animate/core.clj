@@ -67,11 +67,23 @@
     (let [files (.list (File. config-dir) (proxy [FilenameFilter] [] (accept [dir name] (.endsWith name ".config"))))]
         (map #(merge (struct config-struct) (read-file-to-hashmap (str config-dir "/" % ))) files)))
               
+(defn run-animate-inits
+    " Run the animate-init functions on each of the dynamic apps "
+    [configs]
+    (doseq [app (filter #(= (:application-type %) :dynamic) configs)] 
+        (println "Running animate-init on " (:name app) "with namespace " (:application-namespace app))
+        ;; LOAD or IMPORT or USE or REQUIRE the namespace (:application-namespace app).animate
+        ;; Call animate-startup
+        ;; Verify that resolve-url responds
+        ;; Somehow load other namespaces? How will resolve-url work?
+        ))
+
 (defn run-server
     " The main server process "
     [port config-dir tmp-dir]
     (def *config-dir* config-dir)
     (def *configs* (load-config-files *config-dir*))
+    (run-animate-inits *configs*)
     (create-server (Integer. port) handle-request))
   
 (defn -main [& args]
