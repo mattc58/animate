@@ -1,0 +1,29 @@
+#!/bin/bash
+# Runs Clojure using the classpath specified in the `.clojure` file of the
+# current directory and adds any src directories from animate
+#
+JAVA=/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home/bin/java 
+CLJ_DIR=$HOME/Library/Clojure/lib
+CLOJURE=$CLJ_DIR/clojure.jar
+CONTRIB=$CLJ_DIR/clojure-contrib.jar
+CP=$PWD:$CLOJURE:$CONTRIB
+ 
+# Add extra jars as specified by `.clojure` file
+if [ -f .clojure ]
+then
+	CP=$CP:`cat .clojure`
+fi
+
+for directory in `find animate -type d -maxdepth 1 -mindepth 1 -not -name .svn`
+do
+    echo $directory exists here - do something with it
+done
+ 
+if [ -z "$1" ]; then 
+	rlwrap $JAVA -server -cp $CP \
+	    clojure.main    
+else
+	scriptname=$1
+	$JAVA -server -cp $CP clojure.lang.Script $scriptname -- $*
+fi
+
