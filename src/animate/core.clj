@@ -66,7 +66,6 @@
     (let [request (read-lines in)
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
-        (print "request = " http-request)
         (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)) *config-dir*)))
 
