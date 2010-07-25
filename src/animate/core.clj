@@ -27,6 +27,16 @@
     (filter #(not (nil? %)) 
         (map (fn [item] (if (not-empty (filter #(.startsWith host-name %) (:host-names item))) item nil)) configs)))
         
+(defn parse-cookies
+    " grab the cookies out of the request and turn then into a hashmap "
+    [http-request]
+    (let [cookie (:cookie http-request)]
+        (if cookie
+            (let [split (map #(.split % "=") (.split cookie ";"))]
+                (zipmap
+                    (map (fn [pair] (first pair)) split)
+                    (map (fn [pair] (second pair)) split))))))
+
 (defn parse-http-request
     " make the http-request structure from the incoming request lines 
     :verb :resource :protocol :user-agent :host :accept
@@ -37,22 +47,26 @@
     and so on
     "
     [request-lines]
-    (let [first-line (.split (first request-lines) " ") lines (take-while #(not-empty %) (rest request-lines))]
-        (merge 
+    (let [
+        first-line (.split (first request-lines) " ") 
+        lines (take-while #(not-empty %) (rest request-lines))
+        request (merge 
             (hash-map
                 :verb (first first-line)
                 :resource (second first-line)
                 :protocol (nth first-line 2))
             (zipmap
                 (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
-                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))))
-
+                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))]
+        (dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
+                
 (defn handle-request
     " the function that handles the client request "
     [in out]
     (let [request (read-lines in)
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
+        (print "request = " http-request)
         (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
             "/index.html" (:resource http-request)) *config-dir*)))
 
