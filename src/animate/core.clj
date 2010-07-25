@@ -66,7 +66,7 @@
     (if
          (empty? host)
          (static/serve-404 nil stream)
-         (let [file-name (str config-dir "login.html")
+         (let [file-name (str config-dir "/login.html")
              resource-file (File. file-name)]
              (if
                  (.exists resource-file)
@@ -79,7 +79,6 @@
     (let [request (read-lines in)
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
-        (println    request)
         (if (= (:resource http-request) "/login")
             (serve-login host out http-request *config-dir*)
             (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
