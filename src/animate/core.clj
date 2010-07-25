@@ -59,15 +59,31 @@
                 (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
                 (map #(.substring % (+ (.indexOf % ":") 2)) lines)))]
         (dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
-                
+     
+(defn serve-login
+    " serve the login form "
+    [host stream http-request config-dir]
+    (if
+         (empty? host)
+         (static/serve-404 nil stream)
+         (let [file-name (str config-dir "login.html")
+             resource-file (File. file-name)]
+             (if
+                 (.exists resource-file)
+                 (static/write-resource stream (headers/make-header (.length resource-file) file-name) nil resource-file)
+                 (static/serve-404 (str (:files-root (first host)) "/404.html") stream config-dir)))))
+   
 (defn handle-request
     " the function that handles the client request "
     [in out]
     (let [request (read-lines in)
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
-        (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
-            "/index.html" (:resource http-request)) *config-dir*)))
+        (println    request)
+        (if (= (:resource http-request) "/login")
+            (serve-login host out http-request *config-dir*)
+            (static/serve-resource host out http-request (if (= (:resource http-request) "/") 
+                "/index.html" (:resource http-request)) *config-dir*))))
 
 (defn read-file-to-hashmap
     " load a file into a hashmap "
