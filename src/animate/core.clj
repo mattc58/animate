@@ -47,6 +47,7 @@
     and so on
     "
     [request-lines]
+    (println request-lines)
     (let [
         first-line (.split (first request-lines) " ") 
         lines (take-while #(not-empty %) (rest request-lines))
@@ -79,7 +80,6 @@
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    ;(println "request = " (read-lines in))
     (let [request (read-lines in)
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
