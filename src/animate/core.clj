@@ -47,35 +47,36 @@
     and so on
     "
     [request-lines]
-    (println request-lines)
     (let [
         first-line (.split (first request-lines) " ") 
-        lines (take-while #(not-empty %) (rest request-lines))
-        request (merge 
-            (hash-map
-                :verb (first first-line)
-                :resource (second first-line)
-                :protocol (nth first-line 2))
-            (zipmap
-                (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
-                (map #(.substring % (+ (.indexOf % ":") 2)) lines)))]
-        (dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
+        lines (rest request-lines)]
+        (doseq [line lines]
+            (println line)))
+        (next [])
+        ;request (merge 
+        ;    (hash-map
+        ;        :verb (first first-line)
+        ;        :resource (second first-line)
+        ;        :protocol (nth first-line 2))
+        ;    (zipmap
+        ;        (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
+        ;        (map #(.substring % (+ (.indexOf % ":") 2)) lines)))]
+        ;(dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
      
 (defn serve-login
     " serve the login form "
     [in host stream http-request config-dir]
     (if
-         (empty? host)
-         (static/serve-404 nil stream)
-         (if (= "GET" (:verb http-request))
-             (let [file-name (str config-dir "/login.html")
-                 resource-file (File. file-name)]
-                 (if
-                     (.exists resource-file)
-                     (static/write-resource stream (headers/make-header (.length resource-file) file-name) nil resource-file)
-                     (static/serve-404 (str (:files-root (first host)) "/404.html") stream config-dir)))
-            (let [post-body (read-lines in)]
-            (println "Body = " post-body)))))
+        (empty? host)
+        (static/serve-404 nil stream)
+        (if (= "GET" (:verb http-request))
+            (let [file-name (str config-dir "/login.html")
+                resource-file (File. file-name)]
+                (if
+                    (.exists resource-file)
+                    (static/write-resource stream (headers/make-header (.length resource-file) file-name) nil resource-file)
+                    (static/serve-404 (str (:files-root (first host)) "/404.html") stream config-dir)))
+        (println http-request))))
    
 (defn handle-request
     " the function that handles the client request "
