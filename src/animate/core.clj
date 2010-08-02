@@ -10,7 +10,7 @@
     (:use [clojure.contrib.io :only (read-lines, to-byte-array, copy)])
     (:use [clojure.contrib.server-socket :only (create-server)])
     (:use (clojure.contrib [string :only (join lower-case)]))
-    (:import (java.io File FilenameFilter FileNotFoundException BufferedReader OutputStream InputStreamReader OutputStreamWriter)))
+    (:import (java.io StringWriter File FilenameFilter FileNotFoundException BufferedReader OutputStream InputStreamReader OutputStreamWriter)))
  
 ;; some globals for the server
 
@@ -36,6 +36,10 @@
                 (zipmap
                     (map (fn [pair] (first pair)) split)
                     (map (fn [pair] (second pair)) split))))))
+                    
+(defn parse-headers
+    [lines]
+)
 
 (defn parse-http-request
     " make the http-request structure from the incoming request lines 
@@ -49,19 +53,14 @@
     [request-lines]
     (let [
         first-line (.split (first request-lines) " ") 
-        lines (rest request-lines)]
-        (doseq [line lines]
-            (println line)))
-        (next [])
-        ;request (merge 
-        ;    (hash-map
-        ;        :verb (first first-line)
-        ;        :resource (second first-line)
-        ;        :protocol (nth first-line 2))
-        ;    (zipmap
-        ;        (map #(keyword (lower-case (.substring % 0 (.indexOf % ":")))) lines)
-        ;        (map #(.substring % (+ (.indexOf % ":") 2)) lines)))]
-        ;(dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
+        lines (rest request-lines)
+        request (merge 
+           (hash-map
+               :verb (first first-line)
+               :resource (second first-line)
+               :protocol (nth first-line 2))
+           (parse-headers lines))]
+        (dissoc (assoc request :cookies (parse-cookies request)) :cookie)))
      
 (defn serve-login
     " serve the login form "
@@ -81,7 +80,11 @@
 (defn handle-request
     " the function that handles the client request "
     [in out]
-    (let [request (read-lines in)
+    (do
+        (def s (StringWriter. ))
+        (copy in s)
+    )
+    (let [  request (.split (.toString s) "\n")
             http-request (parse-http-request request)
             host (find-config (:host http-request) *configs*)]
         (if (= (:resource http-request) "/login")
@@ -118,7 +121,7 @@
     (def *configs* (load-config-files *config-dir*))
     (run-animate-inits *configs*)
     (create-server (Integer. port) handle-request))
-  
+    
 (defn -main [& args]
     "the main function, gets called on startup to process command line args"
     (with-command-line args
