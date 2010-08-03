@@ -4,7 +4,7 @@
     (:require [animate.headers :as headers])
     (:use [clojure.contrib.io :only (copy)])
     (:import (java.io File FilenameFilter FileNotFoundException BufferedReader OutputStream InputStreamReader OutputStreamWriter)))
- 
+
 (defn write-resource
     " write the resource "
     [out header resource file]
